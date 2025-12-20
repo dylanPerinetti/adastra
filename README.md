@@ -7,13 +7,7 @@ Le système permet d’enregistrer les données de vol (accélérations, vitesse
 
 ---
 
-## 🔧 Doc projet
-
-Le dépôt **adastra-datalogger** regroupe l’ensemble des fichiers nécessaires au fonctionnement,
-à la récupération et à l’analyse des données du data logger embarqué de la fusée **ADASTRA**
-du club **NOVA CNAM**.
-
-### 📁 Arborescence du dépôt
+## 📁 Arborescence du dépôt
 
 ```text
 adastra-datalogger/
