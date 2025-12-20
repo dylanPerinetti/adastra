@@ -1,7 +1,7 @@
 # 🛰️ ADASTRA – Data Logger Fusée  
 ### Club NOVA CNAM
 
-Ce dépôt contient le **data logger embarqué** développé pour la fusée du **club NOVA CNAM**, dans le cadre du projet **ADASTRA**.
+Ce dépôt contient le **data logger embarqué** développé pour la fusée du **club NOVA CNAM**, dans le cadre du projet **ADASTRA CSPACE 2026**.
 
 Le système permet d’enregistrer les données de vol (accélérations, vitesse angulaire, altitude, pression et distance sol) sur une **EEPROM externe**, afin de les analyser après récupération de la fusée.
 
