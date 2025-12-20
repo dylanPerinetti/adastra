@@ -1,4 +1,4 @@
-# 🛰️ ADASTRA – Data Logger Fusée  
+# 🛰️ ADASTRA – Data Logger V1 Fusée  
 ### Club NOVA CNAM
 
 Ce dépôt contient le **data logger embarqué** développé pour la fusée du **club NOVA CNAM**, dans le cadre du projet **ADASTRA CSPACE 2026**.
