@@ -7,6 +7,31 @@ Le système permet d’enregistrer les données de vol (accélérations, vitesse
 
 ---
 
+## 🔧 Doc projet
+
+Le dépôt **adastra-datalogger** regroupe l’ensemble des fichiers nécessaires au fonctionnement,
+à la récupération et à l’analyse des données du data logger embarqué de la fusée **ADASTRA**
+du club **NOVA CNAM**.
+
+### 📁 Arborescence du dépôt
+
+```text
+adastra-datalogger/
+│
+├── src/
+│   ├── adastra_datalogger.ino    # Code embarqué (enregistrement des données en vol)
+│   └── read_eeprom.ino           # Lecture EEPROM + export CSV via Serial
+│
+├── analysis/
+│   └── analyse_vol.py            # Analyse des données de vol (Python)
+│
+├── README.md                     # Documentation principale du projet
+│
+└── docs/
+    └── schema_branchement.png    # Schéma de câblage du data logger
+```
+---
+
 ## 🔧 Matériel utilisé
 
 - **Arduino Nano**
@@ -135,8 +160,8 @@ Les données sont **optimisées pour l’embarqué** (pas de `float` en mémoire
 
 - Fréquence d’enregistrement : **~50 Hz**
 - Écriture séquentielle en EEPROM
-- Aucun effacement automatique (sécurité post-crash)
-- Données récupérées après vol via un sketch de lecture
+- Aucun effacement automatique (sécurité post-crash mais ça n'arriveras pas ;))
+- Données récupérées après vol via un sketch de lecture (read_eeprom.ino)
 
 ---
 
@@ -145,11 +170,11 @@ Les données sont **optimisées pour l’embarqué** (pas de `float` en mémoire
 Après récupération de la fusée :
 - Lecture EEPROM via Serial
 - Export CSV
-- Analyse sous **Python / MATLAB / Excel**
+- Analyse sous **Python**
 - Exploitation :  
   - Profil altitude  
   - Accélération max  
-  - Détection décollage / apogée / impact  
+  - Détection décollage / apogée / impact  (Pas le déclanchement du parachute juste pour les données)
 
 ---
 
@@ -163,11 +188,8 @@ Après récupération de la fusée :
 
 ## 🔭 Évolutions prévues
 
-- Détection automatique de l’apogée
-- Calcul vitesse verticale
-- Déclenchement parachute
-- Ajout RTC
-- Passage SD Card pour vols longs
+- Calcul vitesse verticale ?
+- Passage SD Card pour vols longs ?
 
 ---
 
