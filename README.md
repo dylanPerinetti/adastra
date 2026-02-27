@@ -3,7 +3,7 @@
 
 Ce dépôt contient le **data logger embarqué** développé pour la fusée du **club NOVA CNAM**, dans le cadre du projet **ADASTRA CSPACE 2026**.
 
-Le système permet d’enregistrer les données de vol (accélérations, vitesse angulaire, altitude, pression et distance sol) sur une **EEPROM externe**, afin de les analyser après récupération de la fusée.
+✅ **Mise à jour :** l’enregistrement des données se fait désormais sur **carte micro‑SD (module lecteur micro‑SD)**, afin de récupérer les logs facilement après vol (plus besoin d’EEPROM externe).
 
 ---
 
@@ -13,8 +13,10 @@ Le système permet d’enregistrer les données de vol (accélérations, vitesse
 adastra-datalogger/
 │
 ├── src/
-│   ├── adastra_datalogger.ino    # Code embarqué (enregistrement des données en vol)
-│   └── read_eeprom.ino           # Lecture EEPROM + export CSV via Serial
+│   ├── Sequenceur_Nano.ino       # Code embarqué (Séquenceur de récupération)
+│   ├── Sequenceur.md
+│   ├── adastra_datalogger.ino    # Code embarqué (enregistrement des données en vol -> micro‑SD)
+│   └── read_eeprom.ino           # (Legacy) Lecture EEPROM + export CSV via Serial (si ancien montage)
 │
 ├── analysis/
 │   └── analyse_vol.py            # Analyse des données de vol (Python)
@@ -24,6 +26,7 @@ adastra-datalogger/
 └── docs/
     └── schema_branchement.png    # Schéma de câblage du data logger
 ```
+
 ---
 
 ## 🔧 Matériel utilisé
@@ -32,19 +35,21 @@ adastra-datalogger/
 - **MPU6050** – Accéléromètre + gyroscope (6 axes)
 - **BMP280** – Capteur de pression et altitude
 - **HC-SR04** – Capteur ultrason (phase sol / atterrissage)
-- **EEPROM 24LC256** – Mémoire I2C (32 Ko)
+- **Lecteur micro‑SD (module SPI)** + **carte micro‑SD** *(stockage des données de vol)*
+
+> 📝 L’EEPROM 24LC256 n’est plus utilisée dans la version actuelle (restée en “legacy” si besoin).
 
 ---
 
 ## 🔌 Branchement
 
 ### 📡 Bus I2C (commun)
-Les modules **MPU6050**, **BMP280** et **EEPROM 24LC256** partagent le même bus I2C.
+Les modules **MPU6050** et **BMP280** partagent le même bus I2C.
 
 | Arduino Nano | Module |
 |-------------|--------|
-| A4 (SDA) | SDA MPU6050 / BMP280 / EEPROM |
-| A5 (SCL) | SCL MPU6050 / BMP280 / EEPROM |
+| A4 (SDA) | SDA MPU6050 / BMP280 |
+| A5 (SCL) | SCL MPU6050 / BMP280 |
 
 ---
 
@@ -85,20 +90,17 @@ Adresse I2C utilisée : `0x76`
 
 ---
 
-### 💾 EEPROM 24LC256
+### 💾 Lecteur micro‑SD (SPI)
+Le module micro‑SD utilise le bus **SPI**.
 
-| EEPROM | Arduino Nano |
-|-------|-------------|
-| VCC | 5V |
+| micro‑SD (SPI) | Arduino Nano |
+|---|---|
+| VCC | 5V *(si module avec régulation/level shifting)* **ou** 3.3V *(si module “nu”)* |
 | GND | GND |
-| SDA | A4 |
-| SCL | A5 |
-| A0 | GND |
-| A1 | GND |
-| A2 | GND |
-| WP | GND |
-
-Adresse I2C : `0x50`
+| CS (SS) | D10 |
+| MOSI | D11 |
+| MISO | D12 |
+| SCK | D13 |
 
 ---
 
@@ -108,8 +110,8 @@ Le système fonctionne comme un **data logger autonome** :
 
 1. Lecture des capteurs
 2. Mise en forme des données
-3. Écriture séquentielle en EEPROM
-4. Lecture des données après vol via USB (Serial)
+3. Écriture en continu sur **carte micro‑SD**
+4. Récupération des fichiers après vol (lecture PC)
 
 Le timestamp est basé sur `millis()` (suffisant pour un vol suborbital amateur).
 
@@ -117,25 +119,21 @@ Le timestamp est basé sur `millis()` (suffisant pour un vol suborbital amateur)
 
 ## 📦 Format des données enregistrées
 
-Les données sont **optimisées pour l’embarqué** (pas de `float` en mémoire).
+Les données peuvent être enregistrées :
+- soit en **CSV** (lisible directement),
+- soit en **binaire** (plus rapide/robuste) puis converties via Python.
 
-### Structure d’un enregistrement
+### Champs typiques d’une mesure
+| Donnée |
+|------|
+| Temps (ms) |
+| Acc X / Y / Z |
+| Gyro X / Y / Z |
+| Pression |
+| Altitude |
+| Distance sol |
 
-| Donnée | Type | Taille |
-|------|------|-------|
-| Temps (ms) | `uint32_t` | 4 |
-| Acc X | `int16_t` | 2 |
-| Acc Y | `int16_t` | 2 |
-| Acc Z | `int16_t` | 2 |
-| Gyro X | `int16_t` | 2 |
-| Gyro Y | `int16_t` | 2 |
-| Gyro Z | `int16_t` | 2 |
-| Pression (Pa/10) | `uint16_t` | 2 |
-| Altitude (m/10) | `int16_t` | 2 |
-| Distance (cm) | `uint16_t` | 2 |
-
-➡️ **22 octets par mesure**  
-➡️ Environ **1480 mesures** stockables
+> Le choix du format (CSV vs binaire) dépend des contraintes de débit et de robustesse en vol.
 
 ---
 
@@ -147,43 +145,44 @@ Les données sont **optimisées pour l’embarqué** (pas de `float` en mémoire
 - `Adafruit BMP280`
 - `Adafruit Unified Sensor`
 - `Wire` (incluse par défaut)
+- `SD` *(ou `SdFat` si on veut plus de performance/contrôle)*
 
 ---
 
 ## 🚀 Fonctionnement du code
 
 - Fréquence d’enregistrement : **~50 Hz**
-- Écriture séquentielle en EEPROM
-- Aucun effacement automatique (sécurité post-crash mais ça n'arriveras pas ;))
-- Données récupérées après vol via un sketch de lecture (read_eeprom.ino)
+- Création/écriture d’un fichier de log sur la **micro‑SD**
+- Données récupérées après vol en lisant la carte micro‑SD sur PC
+- Aucune “suppression auto” des anciens fichiers (sécurité post-vol)
 
 ---
 
 ## 📈 Exploitation des données
 
 Après récupération de la fusée :
-- Lecture EEPROM via Serial
-- Export CSV
+- Récupération du fichier de log sur la micro‑SD
 - Analyse sous **Python**
 - Exploitation :  
   - Profil altitude  
   - Accélération max  
-  - Détection décollage / apogée / impact  (Pas le déclanchement du parachute juste pour les données)
+  - Détection décollage / apogée / impact *(pas le déclenchement du parachute, juste pour les données)*
 
 ---
 
 ## 🔒 Sécurité & robustesse
 
-- EEPROM non volatile (données conservées après crash)
-- Bus I2C simple et fiable
-- Code minimaliste pour éviter les erreurs en vol
+- Stockage non volatile sur micro‑SD
+- Bus I2C simple et fiable pour les capteurs
+- Code minimaliste pour réduire les risques d’erreurs en vol
 
 ---
 
 ## 🔭 Évolutions prévues
 
-- Calcul vitesse verticale ?
-- Passage SD Card pour vols longs ?
+- Gestion multi‑fichiers (log par vol / index auto)
+- Redondance (double log / checksum)
+- Calcul vitesse verticale / apogée en temps réel ?
 
 ---
 
@@ -197,4 +196,4 @@ Data logger V1 par : **Dylan Perinetti**
 ---
 
 ## 🛰️ Projet ADASTRA
-Fusée expérimentale étudiante – CNAM  Pour le CSPACE 2026
+Fusée expérimentale étudiante – CNAM — Pour le CSPACE 2026
