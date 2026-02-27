@@ -135,7 +135,7 @@ Le principe retenu est un **verrouillage mécanique** libéré par un **soléno�
 
 * Faire **au moins 20–50 tests au sol** (ouverture répétée) avant vol.
 * Ajouter un **interrupteur d’armement** physique (sécurité) : “SAFE / ARM”.
-* Protéger le circuit (fusible léger si pertinent), sécuriser les câbles (vibrations).
+* Protéger le circuit, sécuriser les câbles (vibrations).
 
 ---
 
