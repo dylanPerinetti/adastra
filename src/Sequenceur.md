@@ -122,7 +122,7 @@ Le principe retenu est un **verrouillage mécanique** libéré par un **soléno�
 
 ## Fichier de code du séquenceur
 
-* Nom de fichier (Arduino IDE) : **`/dylanPerinetti/adastra/Sequenceur_Nano.ino`**
+* Nom de fichier (Arduino IDE) : **`/dylanPerinetti/adastra/src/Sequenceur_Nano.ino`**
 
 > Le code gère : détection du jack, temporisation X secondes, impulsion sur la sortie MOSFET, sécurité au démarrage.
 
