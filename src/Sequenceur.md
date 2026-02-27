@@ -110,6 +110,9 @@ Le principe retenu est un **verrouillage mécanique** libéré par un **soléno�
 * 
 
   * **diode de roue libre** (ex. 1N5408 ou équivalent)
+### LEDs
+
+* Lien : https://www.amazon.fr/AQSQWQ-%C3%A9mettant-%C3%A9lectroluminescente-Lumi%C3%A8res-Emettant/dp/B0CXDS8LDL/ref=sr_1_3?crid=1HIJU4VYHMRBF&dib=eyJ2IjoiMSJ9.rDqJK8m6tTElJhinxihf-JOmexl00ijpx_iL8EHLZJ8cXKoRe785YDzPG7RNDYWv9tiJ9ksa3ztqAyOT8Yhe1bkBVrMaJmQpbDhbXHfrrXNhWOU3dJ3RajW9uC-maNpY2dkSWHpv7ZZkMHdYMxs_MzpWqTb7JFV_to2rQlmjdgf3gMlzr1TlohDLYHAFiI36dinfPDOQa9WZaD93j5YwzP-vjTGf1cxM8NKSXNE1knCb9MpUcNYpR7ShXVdeC8e641FqMEc6c6rWa0vkzfBf96VrjpPGX0JzOXuV4Ra---c.HydeT6E33A5od3VyeGi5vcQCdxXTvhsjGkUQrK1TV8Y&dib_tag=se&keywords=led%2Barduino&qid=1772222884&sprefix=led%2Bar%2Caps%2C228&sr=8-3&th=1
 
 ### Mécanique
 
