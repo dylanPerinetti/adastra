@@ -122,7 +122,7 @@ Le principe retenu est un **verrouillage mécanique** libéré par un **soléno�
 
 ## Fichier de code du séquenceur
 
-* Nom de fichier (Arduino IDE) : **`Sequenceur\_ADASTRA\_Nano.ino`**
+* Nom de fichier (Arduino IDE) : **`/dylanPerinetti/adastra/Sequenceur_Nano.ino`**
 
 > Le code gère : détection du jack, temporisation X secondes, impulsion sur la sortie MOSFET, sécurité au démarrage.
 
@@ -133,7 +133,6 @@ Le principe retenu est un **verrouillage mécanique** libéré par un **soléno�
 * Faire **au moins 20–50 tests au sol** (ouverture répétée) avant vol.
 * Ajouter un **interrupteur d’armement** physique (sécurité) : “SAFE / ARM”.
 * Protéger le circuit (fusible léger si pertinent), sécuriser les câbles (vibrations).
-* Vérifier la conformité avec les règles du club/association et la réglementation locale.
 
 ---
 
