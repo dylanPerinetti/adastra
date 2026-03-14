@@ -1,90 +1,58 @@
 /****************************************************
- *  ADASTRA (FuséEx) - Data Logger V1
+ *  ADASTRA (FuséEx) - Data Logger V2
  *  Club NOVA CNAM pour le CSPACE 2026
  *
  *  Capteurs :
  *   - MPU6050 (Accéléromètre + Gyroscope)
- *   - BMP280  (Pression / Altitude)
+ *   - BMP280  (Pression / Altitude / Température)
  *   - HC-SR04 (Distance sol / atterrissage)
  *
  *  Stockage :
- *   - EEPROM I2C 24LC256 (32 Ko)
+ *   - Carte micro-SD via module SPI
  *
  *  Auteur : Dylan Perinetti
  ****************************************************/
 
+#include <Arduino.h>
 #include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_BMP280.h>
 #include <Adafruit_Sensor.h>
 
 /* ===================== CONFIG ===================== */
 
-#define EEPROM_ADDR 0x50
+constexpr uint8_t SD_CS_PIN       = 10;            // Chip select micro-SD (Nano = D10)
+constexpr uint8_t TRIG_PIN        = 2;
+constexpr uint8_t ECHO_PIN        = 3;
 
-#define TRIG_PIN 2
-#define ECHO_PIN 3
+constexpr float   SEA_LEVEL_HPA   = 1013.25;       // hPa (à ajuster le jour du vol)
+constexpr unsigned long LOG_PERIOD_MS = 20;         // ~50 Hz
+constexpr unsigned long ECHO_TIMEOUT_US = 30000;    // timeout pulseIn (µs)
 
-#define SEA_LEVEL_PRESSURE 1013.25 // hPa
-#define LOG_FREQUENCY_MS 20        // ~50 Hz
+static const char FILENAME[] = "ADASTRA.CSV";      // fichier sur la carte SD
 
 /* ===================== OBJETS ===================== */
 
 Adafruit_MPU6050 mpu;
-Adafruit_BMP280 bmp;
+Adafruit_BMP280  bmp;
 
-/* ===================== STRUCTURE DATA ===================== */
-/*
- * Taille totale : 22 octets
- */
-struct LogData {
-  uint32_t timeMs;
-
-  int16_t ax;
-  int16_t ay;
-  int16_t az;
-
-  int16_t gx;
-  int16_t gy;
-  int16_t gz;
-
-  uint16_t pressure; // Pa / 10
-  int16_t altitude;  // m / 10
-  uint16_t distance; // cm
-};
-
-unsigned int eepromAddress = 0;
-
-/* ===================== EEPROM ===================== */
-
-void eepromWriteStruct(unsigned int addr, LogData &data) {
-  byte *ptr = (byte *)&data;
-
-  Wire.beginTransmission(EEPROM_ADDR);
-  Wire.write(addr >> 8);
-  Wire.write(addr & 0xFF);
-
-  for (unsigned int i = 0; i < sizeof(LogData); i++) {
-    Wire.write(ptr[i]);
-  }
-
-  Wire.endTransmission();
-  delay(10); // temps d'écriture EEPROM
-}
+bool sdReady = false;   // carte SD disponible ?
 
 /* ===================== HC-SR04 ===================== */
 
-uint16_t readDistance() {
+uint16_t readDistanceCm() {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
 
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // timeout 30 ms
+  unsigned long duration = pulseIn(ECHO_PIN, HIGH, ECHO_TIMEOUT_US);
   if (duration == 0) return 0;
 
-  return duration * 0.034 / 2;
+  return (uint16_t)(duration * 0.034f / 2.0f);  // cm
 }
 
 /* ===================== SETUP ===================== */
@@ -96,61 +64,92 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
-  /* MPU6050 */
+  /* --- Carte micro-SD --- */
+  if (SD.begin(SD_CS_PIN)) {
+    sdReady = true;
+    Serial.println(F("SD OK"));
+
+    // Écrire l'en-tête CSV si le fichier n'existe pas encore
+    if (!SD.exists(FILENAME)) {
+      File f = SD.open(FILENAME, FILE_WRITE);
+      if (f) {
+        f.println(F("time_ms,ax,ay,az,gx,gy,gz,pressure_Pa,altitude_m,temp_C,distance_cm"));
+        f.close();
+      }
+    }
+  } else {
+    Serial.println(F("WARN: carte SD absente — données série uniquement"));
+  }
+
+  /* --- MPU6050 --- */
   if (!mpu.begin()) {
-    Serial.println("ERREUR : MPU6050 non detecte");
-    while (1);
+    Serial.println(F("ERR: MPU6050 introuvable"));
+    while (true) delay(500);
   }
+  mpu.setAccelerometerRange(MPU6050_RANGE_16_G);
+  mpu.setGyroRange(MPU6050_RANGE_2000_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
-  /* BMP280 */
+  /* --- BMP280 --- */
   if (!bmp.begin(0x76)) {
-    Serial.println("ERREUR : BMP280 non detecte");
-    while (1);
+    Serial.println(F("ERR: BMP280 introuvable"));
+    while (true) delay(500);
   }
+  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
+                  Adafruit_BMP280::SAMPLING_X2,   // température
+                  Adafruit_BMP280::SAMPLING_X16,  // pression
+                  Adafruit_BMP280::FILTER_X16,
+                  Adafruit_BMP280::STANDBY_MS_1);
 
-  Serial.println("=================================");
-  Serial.println("  ADASTRA - DATA LOGGER PRET");
-  Serial.println("  Club NOVA CNAM");
-  Serial.println("=================================");
+  Serial.println(F("================================="));
+  Serial.println(F("  ADASTRA V2 - DATA LOGGER PRET"));
+  Serial.println(F("  Club NOVA CNAM — micro-SD"));
+  Serial.println(F("================================="));
+
+  // En-tête série (même format que le CSV)
+  Serial.println(F("time_ms,ax,ay,az,gx,gy,gz,pressure_Pa,altitude_m,temp_C,distance_cm"));
 }
 
 /* ===================== LOOP ===================== */
 
 void loop() {
-  sensors_event_t accel, gyro, temp;
-  mpu.getEvent(&accel, &gyro, &temp);
+  unsigned long t0 = millis();
 
-  LogData log;
+  /* --- Lecture capteurs --- */
+  sensors_event_t accel, gyro, temp_event;
+  mpu.getEvent(&accel, &gyro, &temp_event);
 
-  log.timeMs = millis();
+  float pressure = bmp.readPressure();           // Pa
+  float altitude = bmp.readAltitude(SEA_LEVEL_HPA); // m
+  float tempC    = bmp.readTemperature();         // °C
 
-  // Accélération (m/s² * 100)
-  log.ax = accel.acceleration.x * 100;
-  log.ay = accel.acceleration.y * 100;
-  log.az = accel.acceleration.z * 100;
+  uint16_t dist  = readDistanceCm();              // cm
 
-  // Gyroscope (rad/s * 100)
-  log.gx = gyro.gyro.x * 100;
-  log.gy = gyro.gyro.y * 100;
-  log.gz = gyro.gyro.z * 100;
+  /* --- Construire la ligne CSV --- */
+  char line[160];
+  snprintf(line, sizeof(line),
+    "%lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.1f,%.2f,%.2f,%u",
+    t0,
+    accel.acceleration.x, accel.acceleration.y, accel.acceleration.z,
+    gyro.gyro.x, gyro.gyro.y, gyro.gyro.z,
+    pressure, altitude, tempC,
+    dist);
 
-  // Pression & altitude
-  log.pressure = bmp.readPressure() / 10; // Pa / 10
-  log.altitude = bmp.readAltitude(SEA_LEVEL_PRESSURE) * 10;
+  /* --- Sortie série --- */
+  Serial.println(line);
 
-  // Distance sol
-  log.distance = readDistance();
+  /* --- Écriture carte SD --- */
+  if (sdReady) {
+    File f = SD.open(FILENAME, FILE_WRITE);
+    if (f) {
+      f.println(line);
+      f.close();
+    }
+  }
 
-  // Écriture EEPROM
-  eepromWriteStruct(eepromAddress, log);
-  eepromAddress += sizeof(LogData);
-
-  // Debug sol uniquement
-  Serial.print("LOG @ ");
-  Serial.print(log.timeMs);
-  Serial.print(" ms | Alt: ");
-  Serial.print(log.altitude / 10.0);
-  Serial.println(" m");
-
-  delay(LOG_FREQUENCY_MS);
+  /* --- Compenser le temps d'exécution pour garder ~50 Hz --- */
+  unsigned long elapsed = millis() - t0;
+  if (elapsed < LOG_PERIOD_MS) {
+    delay(LOG_PERIOD_MS - elapsed);
+  }
 }
