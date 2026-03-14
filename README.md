@@ -8,7 +8,7 @@ Le systeme est compose de **deux Arduino Nano independants** :
 
 | Arduino | Role | Fichier source |
 |---|---|---|
-| **Arduino #1 – Data Logger** | Acquisition capteurs + enregistrement CSV sur micro-SD | `adastra_datalogger-v1.ino` |
+| **Arduino #1 – Data Logger** | Acquisition capteurs + enregistrement CSV sur micro-SD | `adastra_datalogger-v2.ino` |
 | **Arduino #2 – Sequenceur** | Declenchement parachute (solenoide + ressort) | `Sequenceur_Nano.ino` |
 
 ---
@@ -18,7 +18,7 @@ Le systeme est compose de **deux Arduino Nano independants** :
 ```text
 adastra/
 ├── src/
-│   ├── adastra_datalogger-v1.ino   # Arduino #1 – Data logger micro-SD
+│   ├── adastra_datalogger-v2.ino   # Arduino #1 – Data logger micro-SD
 │   ├── Sequenceur_Nano.ino         # Arduino #2 – Sequenceur parachute
 │   └── Sequenceur.md               # Documentation sequenceur
 │
@@ -184,7 +184,7 @@ A installer via le gestionnaire de bibliotheques :
 
 Le script `analysis/analyse_vol.py` fournit :
 
-- **6 graphiques** : altitude, accelerations (XYZ + norme), gyroscope, pression / temperature, distance sol, vitesse verticale estimee
+- **10 graphiques** : altitude, accelerations (XYZ + norme, m/s² et g), gyroscope (rad/s et °/s + norme), pression / temperature, distance sol, vitesse verticale, taux de montee/descente, dashboard recapitulatif
 - **Detection automatique** du decollage, de l'apogee et de l'atterrissage
 - **Rapport synthetique** : duree de vol, apogee, acceleration max, pression min/max, temperatures
 - **Filtrage Butterworth** passe-bas pour lisser les donnees bruitees

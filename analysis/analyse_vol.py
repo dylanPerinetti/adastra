@@ -198,6 +198,146 @@ def plot_velocity(df: pd.DataFrame, events: dict, save: bool, out_dir: Path):
     _save_or_show(fig, "vitesse_verticale", save, out_dir)
 
 
+def plot_accel_g(df: pd.DataFrame, events: dict, save: bool, out_dir: Path):
+    """Accélération en G sur chaque axe + norme."""
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
+    for col, label in [("ax", "X"), ("ay", "Y"), ("az", "Z")]:
+        axes[0].plot(df["time_s"], df[col] / G, linewidth=0.6, label=f"a{label}")
+    axes[0].set_ylabel("Accélération (g)")
+    axes[0].set_title("Accélérations XYZ en g – ADASTRA")
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    axes[1].plot(df["time_s"], df["accel_norm"] / G, linewidth=0.6, color="tab:red")
+    axes[1].axhline(1.0, color="grey", linestyle=":", label="1 g")
+    for name, ev in events.items():
+        axes[1].axvline(ev["time_s"], linestyle="--", color=ev.get("color", "grey"),
+                        label=f"{name}")
+    axes[1].set_xlabel("Temps (s)")
+    axes[1].set_ylabel("Norme (g)")
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    _save_or_show(fig, "acceleration_g", save, out_dir)
+
+
+def plot_gyro_norm(df: pd.DataFrame, events: dict, save: bool, out_dir: Path):
+    """Norme du gyroscope (taux de spin total) + axes individuels."""
+    gyro_norm = np.sqrt(df["gx"]**2 + df["gy"]**2 + df["gz"]**2)
+    gyro_norm_deg = np.degrees(gyro_norm)
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
+    for col, label in [("gx", "X"), ("gy", "Y"), ("gz", "Z")]:
+        axes[0].plot(df["time_s"], np.degrees(df[col]), linewidth=0.6, label=f"ω{label}")
+    axes[0].set_ylabel("Vitesse angulaire (°/s)")
+    axes[0].set_title("Gyroscope XYZ – ADASTRA")
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    axes[1].plot(df["time_s"], gyro_norm_deg, linewidth=0.6, color="tab:brown",
+                 label="‖ω‖")
+    for name, ev in events.items():
+        axes[1].axvline(ev["time_s"], linestyle="--", color=ev.get("color", "grey"),
+                        label=f"{name}")
+    axes[1].set_xlabel("Temps (s)")
+    axes[1].set_ylabel("Spin total (°/s)")
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    _save_or_show(fig, "gyro_norm", save, out_dir)
+
+
+def plot_climb_rate(df: pd.DataFrame, events: dict, save: bool, out_dir: Path):
+    """Taux de montée/descente (dérivée de l'altitude filtrée)."""
+    dt = np.median(np.diff(df["time_s"].values))
+    fs = 1.0 / dt
+    alt_filt = lowpass(df["altitude_m"].values, fs, cutoff=2.0)
+    climb_rate = np.gradient(alt_filt, dt)
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(df["time_s"], climb_rate, linewidth=0.8, color="tab:cyan")
+    ax.axhline(0, color="grey", linestyle=":")
+    for name, ev in events.items():
+        ax.axvline(ev["time_s"], linestyle="--", color=ev.get("color", "grey"),
+                   label=f"{name}")
+    ax.set_xlabel("Temps (s)")
+    ax.set_ylabel("Taux de montée (m/s)")
+    ax.set_title("Taux de montée / descente (dérivée altitude) – ADASTRA")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    _save_or_show(fig, "climb_rate", save, out_dir)
+
+
+def plot_dashboard(df: pd.DataFrame, events: dict, save: bool, out_dir: Path):
+    """Dashboard récapitulatif : 6 sous-graphiques sur une seule figure."""
+    dt = np.median(np.diff(df["time_s"].values))
+    fs = 1.0 / dt
+
+    fig, axes = plt.subplots(3, 2, figsize=(16, 12), sharex=True)
+    fig.suptitle("ADASTRA – Dashboard de vol", fontsize=14, fontweight="bold")
+
+    # (0,0) Altitude
+    alt_filt = lowpass(df["altitude_m"].values, fs)
+    axes[0, 0].plot(df["time_s"], df["altitude_m"], linewidth=0.5, alpha=0.5, label="Brute")
+    axes[0, 0].plot(df["time_s"], alt_filt, linewidth=1.2, label="Filtrée")
+    axes[0, 0].set_ylabel("Altitude (m)")
+    axes[0, 0].set_title("Altitude")
+    axes[0, 0].legend(fontsize=8)
+    axes[0, 0].grid(True, alpha=0.3)
+
+    # (0,1) Accélération norme en G
+    axes[0, 1].plot(df["time_s"], df["accel_norm"] / G, linewidth=0.5, color="tab:red")
+    axes[0, 1].axhline(1.0, color="grey", linestyle=":")
+    axes[0, 1].set_ylabel("Accélération (g)")
+    axes[0, 1].set_title("Norme accélération")
+    axes[0, 1].grid(True, alpha=0.3)
+
+    # (1,0) Vitesse verticale
+    az_filt = lowpass(df["az"].values, fs)
+    vz = compute_velocity(az_filt - G, dt)
+    axes[1, 0].plot(df["time_s"], vz, linewidth=0.6, color="tab:purple")
+    axes[1, 0].axhline(0, color="grey", linestyle=":")
+    axes[1, 0].set_ylabel("Vz (m/s)")
+    axes[1, 0].set_title("Vitesse verticale")
+    axes[1, 0].grid(True, alpha=0.3)
+
+    # (1,1) Gyroscope norme
+    gyro_norm_deg = np.degrees(np.sqrt(df["gx"]**2 + df["gy"]**2 + df["gz"]**2))
+    axes[1, 1].plot(df["time_s"], gyro_norm_deg, linewidth=0.5, color="tab:brown")
+    axes[1, 1].set_ylabel("Spin (°/s)")
+    axes[1, 1].set_title("Norme gyroscope")
+    axes[1, 1].grid(True, alpha=0.3)
+
+    # (2,0) Pression
+    axes[2, 0].plot(df["time_s"], df["pressure_Pa"] / 100, linewidth=0.6, color="tab:blue")
+    axes[2, 0].set_ylabel("Pression (hPa)")
+    axes[2, 0].set_xlabel("Temps (s)")
+    axes[2, 0].set_title("Pression")
+    axes[2, 0].grid(True, alpha=0.3)
+
+    # (2,1) Distance sol
+    axes[2, 1].plot(df["time_s"], df["distance_cm"], linewidth=0.6, color="tab:green")
+    axes[2, 1].set_ylabel("Distance (cm)")
+    axes[2, 1].set_xlabel("Temps (s)")
+    axes[2, 1].set_title("Distance sol (HC-SR04)")
+    axes[2, 1].grid(True, alpha=0.3)
+
+    # Marqueurs événements sur tous les panneaux
+    for ax_row in axes:
+        for ax in ax_row:
+            for name, ev in events.items():
+                ax.axvline(ev["time_s"], linestyle="--", color=ev.get("color", "grey"),
+                           linewidth=0.8, alpha=0.6)
+
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    _save_or_show(fig, "dashboard", save, out_dir)
+
+
 def _save_or_show(fig, name: str, save: bool, out_dir: Path):
     if save:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -286,13 +426,17 @@ def main():
     # ── Graphiques ──
     plot_altitude(df, events, args.save, out_dir)
     plot_acceleration(df, events, args.save, out_dir)
+    plot_accel_g(df, events, args.save, out_dir)
     plot_gyroscope(df, args.save, out_dir)
+    plot_gyro_norm(df, events, args.save, out_dir)
     plot_pressure_temp(df, args.save, out_dir)
     plot_distance(df, args.save, out_dir)
     plot_velocity(df, events, args.save, out_dir)
+    plot_climb_rate(df, events, args.save, out_dir)
+    plot_dashboard(df, events, args.save, out_dir)
 
     if args.save:
-        print(f"\n✅ Tous les graphiques sauvegardés dans {out_dir}/")
+        print(f"\n✅ {10} graphiques sauvegardés dans {out_dir}/")
 
 
 if __name__ == "__main__":
