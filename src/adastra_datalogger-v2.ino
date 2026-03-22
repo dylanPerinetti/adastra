@@ -3,12 +3,13 @@
  *  Club NOVA CNAM pour le CSPACE 2026
  *
  *  Capteurs :
- *   - MPU6050 (Accéléromètre + Gyroscope)  → I2C (SDA=A4, SCL=A5)
- *   - BMP280  (Pression / Altitude / Temp)  → I2C (SDA=A4, SCL=A5)
- *   - HC-SR04 (Vitesse du son)              → TRIG=D2, ECHO=D3
+ *   - MPU6050 (Accél.+Gyro)  → I2C (SDA=A4, SCL=A5), VCC=5V, GND
+ *   - BMP280  (Press./Alt.)   → I2C (SDA=A4, SCL=A5), VCC=3.3V, GND
+ *   - HC-SR04 (Vitesse son)   → TRIG=D2, ECHO=D3, VCC=5V, GND
  *
  *  Stockage :
- *   - Carte micro-SD (SPI) → CS=D10, MOSI=D11, MISO=D12, SCK=D13
+ *   - Carte micro-SD (SPI) → CS=D10, MOSI=D11, MISO=D12, SCK=D13,
+ *                             VCC=5V, GND
  *
  *  LEDs d'état :
  *   - LED_SD     (D4) : carte SD prête
