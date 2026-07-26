@@ -1,0 +1,12 @@
+# Site vitrine de l'association : depot separe, voir README
+# https://github.com/dylanPerinetti/adastra-website
+website/
+
+# Configuration locale des outils de developpement
+.claude/
+
+# Sorties d'analyse post-vol
+plots/
+*.pyc
+__pycache__/
+.DS_Store
