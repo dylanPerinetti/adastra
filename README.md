@@ -250,6 +250,24 @@ python analysis/analyse_vol.py --file ADASTRA.CSV --save --outdir plots/
 
 ---
 
+## Site web de l'association
+
+Le site vitrine d'AD ASTRA vit dans un depot separe :
+**[dylanPerinetti/adastra-website](https://github.com/dylanPerinetti/adastra-website)** (Laravel).
+
+Il rejoue les enregistrements produits par ce data logger dans un tableau de bord de
+telemetrie : altitude, accelerations, vitesse verticale, vitesses angulaires, pression et
+temperature, avec detection du decollage, de l'apogee et de l'atterrissage.
+
+Le format CSV decrit plus haut est donc un **contrat entre les deux depots**. Une colonne
+renommee ou supprimee ici casse l'affichage la-bas — les colonnes optionnelles
+(`sound_speed_ms`, `mag_*_uT`) sont en revanche tolerees.
+
+Le jeu de donnees `analysis/VOL00_test.csv` est duplique dans le depot du site
+(`database/seeders/data/`) pour qu'un clone isole dispose de vraies courbes.
+
+---
+
 ## Auteurs
 
 Projet developpe par le **club NOVA CNAM**
